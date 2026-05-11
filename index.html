@@ -1501,7 +1501,17 @@
                         Base URL
                         <span class="label-tip">API服务基础地址，最终请求地址将与端点拼接</span>
                     </label>
-                    <input type="url" id="baseUrl" placeholder="https://api.asxs.top/v1" value="https://api.asxs.top/v1" required>
+                    <input type="url" id="baseUrl" placeholder="http://localhost:8791/v1" value="http://localhost:8791/v1" required>
+                </div>
+                <div class="form-group">
+                    <label for="proxyUpstream">
+                        Proxy Upstream
+                        <span class="label-tip">Base URL 使用本地代理时，选择实际转发到哪个上游</span>
+                    </label>
+                    <select id="proxyUpstream">
+                        <option value="https://api.asxs.top">渠道1</option>
+                        <option value="https://6966.online">渠道2</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="apiEndpoint">
@@ -1814,6 +1824,7 @@
             const apiKey = document.getElementById('apiKey');
             const keyToggle = document.getElementById('keyToggle');
             const baseUrl = document.getElementById('baseUrl');
+            const proxyUpstream = document.getElementById('proxyUpstream');
             const apiEndpoint = document.getElementById('apiEndpoint');
             const modelType = document.getElementById('modelType');
             const imageModel = document.getElementById('imageModel');
@@ -1823,6 +1834,13 @@
             const imageSizeDropdownMenu = document.getElementById('imageSizeDropdownMenu');
             const imageSizeOptionButtons = Array.from(imageSizeDropdownMenu.querySelectorAll('.size-option'));
             const PRESET_IMAGE_SIZES = imageSizeOptionButtons.map(option => option.dataset.size);
+            const PROXY_UPSTREAM_LABELS = {
+                'https://api.asxs.top': '渠道1',
+                'https://6966.online': '渠道2'
+            };
+            function getProxyUpstreamLabel(value) {
+                return PROXY_UPSTREAM_LABELS[value] || value || '未选择';
+            }
             let suppressImageSizeFocusOpen = false;
             const prompt = document.getElementById('prompt');
             const uploadArea = document.getElementById('uploadArea');
@@ -2519,7 +2537,8 @@
                     const params = record.params || {};
                     // 1. 加载基础参数
                     if (params.apiKey) apiKey.value = params.apiKey;
-                    baseUrl.value = params.baseUrl || 'https://api.asxs.top/v1';
+                    baseUrl.value = params.baseUrl || 'http://localhost:8791/v1';
+                    proxyUpstream.value = params.proxyUpstream || 'https://api.asxs.top';
                     apiEndpoint.value = params.apiEndpoint || '/responses';
                     const savedImageSize = params.imageSize || '1024x1792';
                     ensureSelectOption(modelType, params.modelType);
@@ -2663,12 +2682,14 @@
                     const apiKeyValue = apiKey.value.trim();
                     const requestHeaders = {
                         "Content-Type": "application/json",
-                        "Authorization": `Bearer ${apiKeyValue}`
+                        "Authorization": `Bearer ${apiKeyValue}`,
+                        "X-ASXS-Upstream": proxyUpstream.value
                     };
 
                     consoleLog('info', '请求头', {
                         ...requestHeaders,
-                        "Authorization": "[OMITTED, API KEY HIDDEN]"
+                        "Authorization": "[OMITTED, API KEY HIDDEN]",
+                        "X-ASXS-Upstream": getProxyUpstreamLabel(requestHeaders["X-ASXS-Upstream"])
                     });
                     consoleLog('info', '请求体', body, true);
 
@@ -3135,6 +3156,9 @@
             baseUrl.addEventListener('input', () => {
                 consoleLog('info', `【参数修改】Base URL已更新为：${baseUrl.value.trim() || '空'}`);
             });
+            proxyUpstream.addEventListener('change', () => {
+                consoleLog('info', `【参数修改】Proxy Upstream已更新为：${getProxyUpstreamLabel(proxyUpstream.value)}`);
+            });
             // API端点 输入监听
             apiEndpoint.addEventListener('input', () => {
                 consoleLog('info', `【参数修改】API端点已更新为：${apiEndpoint.value.trim() || '空'}`);
@@ -3383,7 +3407,8 @@
             resetBtn.addEventListener('click', () => {
                 if (confirm('确定要重置所有参数和已上传的图片吗？')) {
                     apiKey.value = '';
-                    baseUrl.value = 'https://api.asxs.top/v1';
+                    baseUrl.value = 'http://localhost:8791/v1';
+                    proxyUpstream.value = 'https://api.asxs.top';
                     apiEndpoint.value = '/responses';
                     modelType.value = 'gpt-5.5';
                     imageModel.value = 'gpt-image-2';
@@ -3485,7 +3510,7 @@
                 const content = [
                     {
                         type: "input_text",
-                        text: prompt.value.trim()
+                        text: `请生成一张图像，图像要求如下：${prompt.value.trim()}`
                     }
                 ];
                 uploadedImages.forEach(img => {
@@ -3515,6 +3540,9 @@
                             background: "auto"
                         }
                     ],
+                    tool_choice: {
+                        type: "image_generation"
+                    },
                     store: false,
                     stream: false,
                     include: [
@@ -3642,6 +3670,7 @@
                     engine: 'asxs-api-responses-image-generate',
                     apiKey: apiKey.value.trim(),
                     baseUrl: baseUrlRaw,
+                    proxyUpstream: proxyUpstream.value,
                     apiEndpoint: endpointRaw,
                     modelType: modelType.value.trim(),
                     imageModel: imageModel.value.trim(),
@@ -3668,6 +3697,7 @@
                 consoleLog('info', `image-model：${imageModel.value.trim()}`);
                 consoleLog('info', `图像尺寸：${requestImageSize}`);
                 consoleLog('info', `Base URL：${baseUrlRaw}`);
+                consoleLog('info', `Proxy Upstream：${getProxyUpstreamLabel(proxyUpstream.value)}`);
                 consoleLog('info', `API端点：${endpointRaw}`);
                 consoleLog('info', `参考图数量：${uploadedImages.length}`);
                 consoleLog('info', `最大重试次数：${maxRetries.value}，超时：${timeoutSeconds.value}秒`);

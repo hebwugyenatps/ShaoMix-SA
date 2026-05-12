@@ -1839,7 +1839,7 @@
                 'https://6966.online': '渠道2'
             };
             function getProxyUpstreamLabel(value) {
-                return PROXY_UPSTREAM_LABELS[value] || value || '未选择';
+                return PROXY_UPSTREAM_LABELS[value] || (value ? '未识别渠道' : '未选择');
             }
             let suppressImageSizeFocusOpen = false;
             const prompt = document.getElementById('prompt');
@@ -2452,10 +2452,11 @@
                     const displayBaseUrl = params.baseUrl || '';
                     const displayApiEndpoint = params.apiEndpoint || '';
                     const displayImageSize = params.imageSize || '';
+                    const displayCallCore = getProxyUpstreamLabel(params.proxyUpstream || 'https://api.asxs.top');
                     historyDetailParams.innerHTML = `
                         <div class="history-detail-param-group">
                             <div class="history-detail-param-label">调用核心</div>
-                            <div class="history-detail-param-value">ASXS API Responses 图像生成核心</div>
+                            <div class="history-detail-param-value">${escapeHtml(displayCallCore)}</div>
                         </div>
                         <div class="history-detail-param-group">
                             <div class="history-detail-param-label">生成时间</div>
@@ -3498,7 +3499,7 @@
                 showToast('已在新标签页打开，可右键选择系统照片查看器', 'info');
                 consoleLog('info', '【用户操作】已在新标签页打开图像');
             });
-            // ==================== ASXS API Responses 图像生成核心 ====================
+            // ==================== 图像生成调用流程 ====================
             async function generateAsxsApiImage(requestImageSize = null) {
                 // 1. 拼接最终请求地址
                 const baseUrlRaw = baseUrl.value.trim().replace(/\/$/, '');
@@ -3692,7 +3693,7 @@
                 previewLoading.style.display = 'block';
                 previewStatus.textContent = '正在生成中...';
                 consoleLog('info', '========== 开始新的生成请求 ==========');
-                consoleLog('info', '使用调用核心：ASXS API Responses 图像生成核心');
+                consoleLog('info', `使用调用核心：${getProxyUpstreamLabel(proxyUpstream.value)}`);
                 consoleLog('info', `模型名称：${modelType.value.trim()}`);
                 consoleLog('info', `image-model：${imageModel.value.trim()}`);
                 consoleLog('info', `图像尺寸：${requestImageSize}`);
